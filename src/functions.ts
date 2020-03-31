@@ -18,9 +18,13 @@ export const storyFbToDesktopPermalink = (url?: string | null) => {
 
     const parsed = new URL(url);
     parsed.hostname = DESKTOP_HOST;
-    parsed.pathname = '/permalink.php';
+    if (url.includes('story_fbid=')
+        && url.includes('id=')
+        && !url.includes('/photos')) {
+        parsed.pathname = '/permalink.php';
+    }
     parsed.searchParams.forEach((_, key) => {
-        if (!['story_fbid', 'id', 'substory_index'].includes(key)) {
+        if (!['story_fbid', 'id', 'substory_index', 'type'].includes(key)) {
             parsed.searchParams.delete(key);
         }
     });

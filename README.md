@@ -10,6 +10,8 @@ If you want to run the actor on Apify platform, you need to have at least a prox
 
 One page and posts takes around 7 minutes for the default amount of information (3 posts, 15 comments), also depends on proxy type used (`RESIDENTIAL` vs `DATACENTER`), block rate, retries, memory and CPU provided.
 
+Usually more concurrency is not better, while 5-10 concurrent tasks can finish each around 30s-60s, a 20 concurrency can take up to 300s each. You can limit your concurrency by setting the `MAX_CONCURRENCY` environment variable on your actor.
+
 ## Input
 
 Example input, only `startUrls` and `proxyConfiguration` are required (check `INPUT_SCHEMA.json` for settings):
@@ -17,7 +19,6 @@ Example input, only `startUrls` and `proxyConfiguration` are required (check `IN
 ```json
 {
     "startUrls": [
-        { "url": "https://www.facebook.com/AugustinePrague/" },
         { "url": "https://www.facebook.com/biz/hotel-supply-service/?place_id=103095856397524" }
     ],
     "language": "cs-CZ",
@@ -36,69 +37,109 @@ Example input, only `startUrls` and `proxyConfiguration` are required (check `IN
 ```json
 {
   "categories": [
-    "Software",
-    "Produkt/služba",
-    "Internetová společnost"
+    "Hotel",
+    "Lázně"
   ],
   "info": [
-    "Impresum"
+    "Luxury 5 star hotel in former monastery complex in Prague, Czech Republic."
   ],
-  "likes": 385,
-  "messenger": "https://m.me/481921368656067",
+  "likes": 4065,
+  "messenger": "https://m.me/1" ...,
   "posts": [
     {
-      "date": "2020-03-23T14:32:38.000Z",
-      "text": "Home but still going ...",
+      "date": "2020-03-08T15:35:51.000Z",
+      "text": "Our guest " ...,
       "images": [
         {
-          "link": "https://www.facebook.com/apifytech/photos...",
-          "image": "https://scontent-iad3-1.xx.fbcdn.net/v/...."
+          "link": "https://www.facebook.com/.../photos" ...,
+          "image": "https://scontent-prg1-1.xx.fbcdn.net/v/t1.0-0/" ...
         }
       ],
       "links": [],
-      "url": "https://www.facebook.com/apifytech/posts/1529690213879172",
+      "url": "https://www.facebook.com/permalink.php?story_fbid="...,
       "stats": {
-        "comments": 0,
-        "reactions": 16,
-        "shares": 0
+        "comments": 4,
+        "reactions": 66,
+        "shares": 2
       },
       "comments": {
-        "count": 0,
-        "comments": []
+        "count": 2,
+        "mode": "RANKED_THREADED",
+        "comments": [
+          {
+            "date": "2020-03-08T22:13:10.000Z",
+            "name": "Caro" ...,
+            "profileUrl": null,
+            "text": "Wow..." ...,
+            "url": "https://www.facebook.com/.../posts/" ...
+          },
+          {
+            "date": "2020-03-08T16:10:43.000Z",
+            "name": "Bri" ...,
+            "profileUrl": "https://www.facebook.com/b" ...,
+            "text": "Dan" ...,
+            "url": "https://www.facebook.com/.../posts/" ...
+          }
+        ]
       }
     }
   ],
-  "priceRange": null,
+  "priceRange": "$$$$",
   "reviews": {
-    "reviews": [],
-    "average": 0,
-    "count": 0
+    "reviews": [
+      {
+        "title": "Phi" ...,
+        "text": "Très "...,
+        "attributes": [
+          "Romantická atmosféra",
+          "Luxusní hotelová kosmetika",
+          "Důmyslné zařízení",
+          "Nápo"
+        ],
+        "url": "https://www.facebook.com/permalink.php?story_fbid=" ...,
+        "date": "2020-02-14T20:42:37.000Z",
+        "canonical": "https://m.facebook.com/story.php?story_fbid=" ...
+      }
+    ],
+    "average": 4.8,
+    "count": 225
   },
-  "services": [],
-  "title": "Apify",
-  "url": "https://www.facebook.com/apifytech",
-  "lat": null,
-  "lng": null,
-  "address": null,
+  "services": [
+    {
+      "title": "The Refectory",
+      "text": "In The Refectory "...
+    }
+  ],
+  "title": "Hotel, Prague",
+  "url": "https://www.facebook.com/...",
+  "address": {
+    "city": "Praha",
+    "lat": 50.08905444,
+    "lng": 14.40639193,
+    "postalCode": "118 00",
+    "region": "Prague",
+    "street": "Letenská 12/33"
+  },
   "awards": [],
-  "email": null,
+  "email": "email@" ...,
   "impressum": [],
   "instagram": null,
-  "phone": null,
+  "phone": "+420 266 112 233",
   "products": [],
   "transit": null,
   "twitter": null,
-  "website": "https://apify.com/",
+  "website": "https://www.mar" ...,
   "youtube": null,
   "mission": [],
   "overview": [],
   "payment": null,
-  "checkins": "13 lidí tu oznámilo svoji polohu",
-  "#startedAt": "2020-03-25T04:34:57.139Z",
-  "verified": false,
-  "#url": "https://m.facebook.com/pg/apifytech",
-  "#ref": "https://www.facebook.com/apifytech",
-  "#finishedAt": "2020-03-25T04:36:03.218Z"
+  "checkins": "11 504 lidí tu oznámilo svoji polohu",
+  "#startedAt": "2020-03-31T17:26:01.919Z",
+  "verified": true,
+  "#url": "https://m.facebook.com/pg/...",
+  "#ref": "https://www.facebook.com/.../",
+  "#version": 1,
+  "#finishedAt": "2020-03-31T17:34:22.979Z"
 }
 ```
 

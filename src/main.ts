@@ -139,7 +139,7 @@ Apify.main(async () => {
         }
     }
 
-    const maxConcurrency = process.env?.MAX_CONCURRENCY ? +process.env?.MAX_CONCURRENCY : undefined;
+    const maxConcurrency = process.env?.MAX_CONCURRENCY ? +process.env.MAX_CONCURRENCY : undefined;
 
     const crawler = new Apify.PuppeteerCrawler({
         requestQueue,
@@ -513,7 +513,11 @@ Apify.main(async () => {
     const finished = new Date().toISOString();
 
     // generate the dataset from all the crawled pages
-    await Apify.pushData([...state.values()].filter(s => s.categories?.length).map(val => ({ ...val, '#finishedAt': finished })));
+    await Apify.pushData([...state.values()].filter(s => s.categories?.length).map(val => ({
+        ...val,
+        "#version": 1, // current data format version
+        '#finishedAt': finished,
+    })));
 
     log.info(`Done in ${Math.round(elapsed() / 60000)}m!`);
 });

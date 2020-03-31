@@ -133,6 +133,7 @@ export const getPostUrls = async (page: Page, { max, date, username }: { usernam
     const postCutOffDate = cutOffDate(date);
     const start = stopwatch();
     const control = DelayAbort(30000);
+    const scrollingSleep = 300;
 
     const getPosts = async () => {
         try {
@@ -147,17 +148,23 @@ export const getPostUrls = async (page: Page, { max, date, username }: { usernam
                     const timestamp = +get(page_insights, [page_id, 'post_context', 'publish_time']);
                     const psn = get(page_insights, [page_id, 'psn']);
 
-                    if (post.url
-                        && !urls.has(post.url)
+                    log.debug('Post info', {
+                        url: post.url,
+                        psn,
+                        timestamp,
+                    });
+
+                    const { url } = post;
+
+                    if (url
+                        && !urls.has(top_level_post_id)
                         && !PSN_POST_TYPE_BLACKLIST.includes(psn) // skip some post types
                         && timestamp
-                        && post.url.includes('story_fbid=') // for unknown reasons, sometimes the story_fbid is missing
-                        && post.url.includes('id=')
                     ) {
                         control.postpone();
                         urls.set(top_level_post_id, {
                             timestamp,
-                            url: post.url,
+                            url,
                         });
                     }
 
@@ -175,7 +182,7 @@ export const getPostUrls = async (page: Page, { max, date, username }: { usernam
             finish.resolve();
         }
 
-        await sleep(500);
+        await sleep(scrollingSleep);
     };
 
     const interceptAjax = async (res: Response) => {
@@ -199,16 +206,14 @@ export const getPostUrls = async (page: Page, { max, date, username }: { usernam
         await control.run([
             finish.promise,
             scrollUntil(page, {
-                sleepMillis: 300,
+                sleepMillis: scrollingSleep,
                 maybeStop: async ({ count, bodyChanged, scrollChanged }) => {
                     await getPosts();
 
-                    if (max) {
-                        if (count > 2 && !bodyChanged && !scrollChanged) {
-                            return true;
-                        }
+                    log.debug(`Current size ${urls.size} of ${max}`);
 
-                        return urls.size >= max;
+                    if (max) {
+                        return urls.size >= max || (count > 2 && !bodyChanged && !scrollChanged);
                     }
 
                     return count > 10 && (!bodyChanged || !scrollChanged);
@@ -299,11 +304,7 @@ export const getReviews = async (page: Page, { date, max }: { max?: number; date
                     await getReviewsFromPage();
 
                     if (max) {
-                        if (count > 2 && !scrollChanged && !bodyChanged) {
-                            return true;
-                        }
-
-                        return reviews.size >= max;
+                        return reviews.size >= max || (count > 2 && !scrollChanged && !bodyChanged);
                     }
 
                     return count > 3 && !scrollChanged && !bodyChanged;
@@ -805,10 +806,10 @@ export const getServices = async (page: Page): Promise<FbService[]> => {
 
     await scrollUntil(page, {
         sleepMillis,
-        maybeStop: async ({ count, bodyChanged }) => {
+        maybeStop: async ({ count, bodyChanged, scrollChanged }) => {
             await sleep(sleepMillis);
 
-            return count > 2 && !bodyChanged && !(await page.$(CSS_SELECTORS.SERVICES));
+            return (count > 2 && !bodyChanged && !scrollChanged) || !(await page.$(CSS_SELECTORS.SERVICES));
         },
     });
 

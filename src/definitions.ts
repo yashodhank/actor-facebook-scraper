@@ -145,6 +145,7 @@ export interface FbPage {
    "#finishedAt"?: string;
    "#url"?: string;
    "#ref"?: string;
+   "#version"?: number;
 
     url: string;
     title: string;
