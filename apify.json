@@ -1,0 +1,10 @@
+{
+	"name": "facebook-page-crawler",
+	"version": "0.1",
+	"buildTag": "latest",
+	"env": {
+        "APIFY_LOG_LEVEL": "DEBUG",
+        "MAX_CONCURRENCY": 1
+    },
+	"template": "apify_project"
+}
