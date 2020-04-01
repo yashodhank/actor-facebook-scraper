@@ -4,13 +4,13 @@ Extract public information from Facebook Pages.
 
 ## Usage
 
-If you want to run the actor on Apify platform, you need to have at least a proxy so that Facebook doesn't block you. Since it uses Puppeteer, the minumum memory for running is 4096 MB.
+If you want to run the actor on Apify platform, you need to have at least a proxy so that Facebook doesn't block you. Since it uses Puppeteer, the minimum memory for running is 4096 MB.
 
 ## Expected Consumption
 
-One page and posts takes around 7 minutes for the default amount of information (3 posts, 15 comments), also depends on proxy type used (`RESIDENTIAL` vs `DATACENTER`), block rate, retries, memory and CPU provided.
+One page and posts take around 7 minutes for the default amount of information (3 posts, 15 comments), also depends on proxy type used (`RESIDENTIAL` vs `DATACENTER`), block rate, retries, memory and CPU provided.
 
-Usually more concurrency is not better, while 5-10 concurrent tasks can finish each around 30s-60s, a 20 concurrency can take up to 300s each. You can limit your concurrency by setting the `MAX_CONCURRENCY` environment variable on your actor.
+Usually, more concurrency is not better, while 5-10 concurrent tasks can finish each around 30s-60s, a 20 concurrency can take up to 300s each. You can limit your concurrency by setting the `MAX_CONCURRENCY` environment variable on your actor.
 
 ## Input
 
@@ -145,11 +145,11 @@ Example input, only `startUrls` and `proxyConfiguration` are required (check `IN
 
 ## Limitations / Caveats
 
-* Pages "Likes" count are a best-effort. The mobile page doesn't provide the count, and some languages don't provide any at all. So if a page has 1.9M, the number will most likely be 1900000 instead of the exact number.
+* Pages "Likes" count is a best-effort. The mobile page doesn't provide the count, and some languages don't provide any at all. So if a page has 1.9M, the number will most likely be 1900000 instead of the exact number.
 * No content, stats or comments for live stream posts
-* There's a known issue that some post can make the crawler hang for a long time, using all the CPU. It's an edge case that involves a lot of variables to happen, but it's common to happen with a shared post from another live stream with links on both posts.
+* There's a known issue that some posts can make the crawler hang for a long time, using all the CPU. It's an edge case that involves a lot of variables to happen, but it's common to happen with a shared post from another live stream with links on both posts.
 * New reviews don't contain a rating from 1 to 5, but rather is positive or negative
-* Cut-off date for posts happen on original posted date, not edited date, i.e: posts shows as `February 20th 2:11AM`, but that's the editted date, the actual post date is `February 19th 11:31AM` provided on the DOM
+* Cut-off date for posts happen on original posted date, not edited date, i.e: posts show as `February 20th 2:11AM`, but that's the edited date, the actual post date is `February 19th 11:31AM` provided on the DOM
 * The order of items aren't necessarily the same as seen on the page, and not sorted by date
 * Comments of comments are skipped
 
