@@ -8,9 +8,11 @@ If you want to run the actor on Apify platform, you need to have at least a prox
 
 ## Expected Consumption
 
-One page and posts take around 7 minutes for the default amount of information (3 posts, 15 comments), also depends on proxy type used (`RESIDENTIAL` vs `DATACENTER`), block rate, retries, memory and CPU provided.
+One page and posts take around 5-7 minutes for the default amount of information (3 posts, 15 comments) to be generated, also depends on proxy type used (`RESIDENTIAL` vs `DATACENTER`), block rate, retries, memory and CPU provided.
 
 Usually, more concurrency is not better, while 5-10 concurrent tasks can finish each around 30s-60s, a 20 concurrency can take up to 300s each. You can limit your concurrency by setting the `MAX_CONCURRENCY` environment variable on your actor.
+
+A 4096MB actor will take an average 0.07 CU for each page on default settings. More input url pages means more memory needed to scrape all pages.
 
 ## Input
 

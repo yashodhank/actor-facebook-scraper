@@ -126,6 +126,10 @@ export const getPagesFromListing = async (page: Page) => {
  * Get posts until it reaches the given max
  */
 export const getPostUrls = async (page: Page, { max, date, username }: { username: string; max?: number; date?: string }) => {
+    if (!max) {
+        return [];
+    }
+
     const urls = new Map<string, { url: string; timestamp: number }>();
     const finish = deferred(); // gracefully finish
     const currentUrl = page.url();
@@ -168,7 +172,7 @@ export const getPostUrls = async (page: Page, { max, date, username }: { usernam
                         });
                     }
 
-                    if (max && urls.size >= max) {
+                    if (urls.size >= max) {
                         finish.resolve();
                         return;
                     }
@@ -212,11 +216,7 @@ export const getPostUrls = async (page: Page, { max, date, username }: { usernam
 
                     log.debug(`Current size ${urls.size} of ${max}`);
 
-                    if (max) {
-                        return urls.size >= max || (count > 2 && !bodyChanged && !scrollChanged);
-                    }
-
-                    return count > 10 && (!bodyChanged || !scrollChanged);
+                    return urls.size >= max || (count > 2 && !bodyChanged && !scrollChanged);
                 },
             }),
         ]);
@@ -254,6 +254,14 @@ export const getPostUrls = async (page: Page, { max, date, username }: { usernam
  * Get the reviews until it reaches the given max
  */
 export const getReviews = async (page: Page, { date, max }: { max?: number; date?: string }): Promise<FbPage['reviews']> => {
+    if (!max) {
+        return {
+            average: null,
+            count: null,
+            reviews: [],
+        };
+    }
+
     const ld = await pageSelectors.ld(page);
     const reviews = new Map<string, FbReview>();
     const reviewDateCutOff = cutOffDate(date);
@@ -269,7 +277,7 @@ export const getReviews = async (page: Page, { date, max }: { max?: number; date
                 reviews.set(review.url, review);
             }
 
-            if (max && reviews.size >= max) {
+            if (reviews.size >= max) {
                 finish.resolve();
                 break;
             }
@@ -303,11 +311,7 @@ export const getReviews = async (page: Page, { date, max }: { max?: number; date
                 maybeStop: async ({ scrollChanged, count, bodyChanged }) => {
                     await getReviewsFromPage();
 
-                    if (max) {
-                        return reviews.size >= max || (count > 2 && !scrollChanged && !bodyChanged);
-                    }
-
-                    return count > 3 && !scrollChanged && !bodyChanged;
+                    return reviews.size >= max || (count > 2 && !scrollChanged && !bodyChanged);
                 },
             }),
         ]);

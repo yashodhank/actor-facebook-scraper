@@ -259,6 +259,7 @@
             "title": "Max post date",
             "description": "Limit the date of the posts",
             "example": "2020-01-01",
+            "prefill": "2020-01-01",
             "type": "string",
             "editor": "textfield",
             "pattern": "\\d{4}-\\d{2}-\\d{2}"
@@ -282,6 +283,7 @@
         "maxReviewDate": {
             "title": "Max review date",
             "description": "Limit the date of the reviews",
+            "prefill": "2020-01-01",
             "example": "2020-01-01",
             "type": "string",
             "editor": "textfield",
@@ -291,6 +293,7 @@
             "title": "Page information",
             "description": "Select what you want to retrieve from the page. Non-existing info will be skipped",
             "type": "array",
+            "example": ["posts", "about", "reviews", "services"],
             "default": ["posts", "about", "reviews", "services"],
             "prefill": ["posts", "about", "reviews", "services"],
             "editor": "json"
