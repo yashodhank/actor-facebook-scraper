@@ -11,7 +11,7 @@ export const LABELS = {
 
 export const CSS_SELECTORS = {
     SEE_MORE: '[src*="HOn-DOfNHK1"],[src*="ZfrShcKhxxi"]',
-    POST_CONTAINER: '[role="article"]',
+    POST_CONTAINER: '[role="feed"] [role="article"]',
     PAGE_TRANSPARENCY: '[img*="ot671xmFQRs"]',
     MOBILE_CAPTCHA: 'img[src*="/captcha/"]',
     DESKTOP_CAPTCHA: '[data-captcha-class]',

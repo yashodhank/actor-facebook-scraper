@@ -44,9 +44,13 @@ Apify.main(async () => {
         maxPostDate,
         maxPostComments = 15,
         maxReviewDate,
+        maxCommentDate,
         maxReviews = 3,
         commentsMode = 'RANKED_THREADED',
-        pageInfo = ['posts', 'about', 'reviews', 'services'],
+        scrapeAbout = true,
+        scrapeReviews = true,
+        scrapePosts = true,
+        scrapeServices = true,
         language = 'en-US',
     } = input;
 
@@ -98,7 +102,7 @@ Apify.main(async () => {
 
             // initialize the page. if it's already initialized,
             // use the current content
-            await map.append(username, (value) => {
+            await map.append(username, async (value) => {
                 return {
                     ...emptyState(),
                     url: normalizeOutputPageUrl(subpage.url),
@@ -119,6 +123,13 @@ Apify.main(async () => {
             },
         });
     };
+
+    const pageInfo = [
+        ...(scrapePosts ? ['posts'] : []),
+        ...(scrapeAbout ? ['about'] : []),
+        ...(scrapeReviews ? ['reviews'] : []),
+        ...(scrapeServices ? ['services'] : []),
+    ] as FbSection[];
 
     for (const request of processedRequests) {
         const { url } = request;
@@ -148,7 +159,9 @@ Apify.main(async () => {
         autoscaledPoolOptions: {
             // make it easier to debug locally with slowMo without switching tabs
             maxConcurrency,
-            desiredConcurrency: maxConcurrency,
+        },
+        puppeteerPoolOptions: {
+            maxOpenPagesPerInstance: maxConcurrency,
         },
         launchPuppeteerFunction: async (options) => {
             return Apify.launchPuppeteer({
@@ -160,7 +173,7 @@ Apify.main(async () => {
                 ...proxyConfiguration,
             });
         },
-        handlePageTimeoutSecs: Math.round(60 * ((maxPostComments + maxPosts) * 0.33)), // more comments, less concurrency
+        handlePageTimeoutSecs: Math.round(60 * (((maxPostComments + maxPosts) || 10) * 0.33)), // more comments, less concurrency
         gotoFunction: async ({ page, request, puppeteerPool }) => {
             await setLanguageCodeToCookie(language, page);
 
@@ -354,12 +367,14 @@ Apify.main(async () => {
                         // Services if any
                         case 'services':
                             try {
+                                const services = await getServices(page);
+
                                 await map.append(username, async (value) => {
                                     return {
                                         ...value,
                                         services: [
                                             ...(value?.services ?? []),
-                                            ...await getServices(page),
+                                            ...services,
                                         ],
                                     };
                                 });
@@ -401,12 +416,12 @@ Apify.main(async () => {
                         // Reviews if any
                         case 'reviews':
                             try {
-                                await map.append(username, async (value) => {
-                                    const { average, count, reviews } = await getReviews(page, {
-                                        max: maxReviews,
-                                        date: maxReviewDate,
-                                    });
+                                const { average, count, reviews } = await getReviews(page, {
+                                    max: maxReviews,
+                                    date: maxReviewDate,
+                                });
 
+                                await map.append(username, async (value) => {
                                     return {
                                         ...value,
                                         reviews: {
@@ -441,19 +456,25 @@ Apify.main(async () => {
                     // mobile address
                     const { username, canonical } = userData;
 
-                    await map.append(username, async (value) => {
-                        const stats = await getPostInfoFromScript(page, canonical);
+                    const [stats, content] = await Promise.all([
+                        getPostInfoFromScript(page, canonical),
+                        getPostContent(page),
+                    ]);
 
+                    const comments = await getPostComments(page, {
+                        max: maxPostComments,
+                        mode: commentsMode,
+                        date: maxCommentDate,
+                    });
+
+                    await map.append(username, async (value) => {
                         return {
                             ...value,
                             posts: [
                                 {
-                                    ...await getPostContent(page),
+                                    ...content,
                                     stats,
-                                    comments: await getPostComments(page, {
-                                        max: maxPostComments,
-                                        mode: commentsMode,
-                                    }),
+                                    comments,
                                 },
                                 ...(value?.posts ?? []),
                             ],
@@ -480,7 +501,7 @@ Apify.main(async () => {
                     // We want to inform the rich error before throwing
                     log.warning(e.message, e.toJSON());
 
-                    if (e.meta.namespace === 'captcha') {
+                    if (['captcha', 'mobile-meta'].includes(e.meta.namespace)) {
                         // the session is really bad
                         session?.retire();
                         await puppeteerPool.retire(page.browser());

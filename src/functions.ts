@@ -657,7 +657,7 @@ export const scrollUntil = async (page: Page, { doScroll = () => true, sleepMill
 
             await page.evaluate(async () => {
                 window.scrollBy({
-                    top: Math.round(window.innerHeight / 2) || 100,
+                    top: Math.round(window.innerHeight / 1.75) || 100,
                 });
             });
 

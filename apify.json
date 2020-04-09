@@ -3,8 +3,7 @@
 	"version": "0.1",
 	"buildTag": "latest",
 	"env": {
-        "APIFY_LOG_LEVEL": "DEBUG",
-        "MAX_CONCURRENCY": 1
+        "APIFY_LOG_LEVEL": "DEBUG"
     },
 	"template": "apify_project"
 }

@@ -38,8 +38,12 @@ export interface Schema {
     maxPostDate?: string;
     maxReviewDate?: string;
     maxPostComments?: number;
+    maxCommentDate?: string;
     maxReviews?: number;
-    pageInfo?: Exclude<FbSection, 'home'>[];
+    scrapeAbout?: boolean;
+    scrapeReviews?: boolean;
+    scrapePosts?: boolean;
+    scrapeServices?: boolean;
     language?: string;
     commentsMode?: FbCommentsMode;
 }

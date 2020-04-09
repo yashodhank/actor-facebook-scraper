@@ -138,6 +138,7 @@ export const getPostUrls = async (page: Page, { max, date, username }: { usernam
     const start = stopwatch();
     const control = DelayAbort(30000);
     const scrollingSleep = 300;
+    let olderCount = 0;
 
     const getPosts = async () => {
         try {
@@ -166,13 +167,20 @@ export const getPostUrls = async (page: Page, { max, date, username }: { usernam
                         && timestamp
                     ) {
                         control.postpone();
+
+                        if (!postCutOffDate(timestamp)) {
+                            olderCount++;
+                        }
+
                         urls.set(top_level_post_id, {
                             timestamp,
                             url,
                         });
                     }
 
-                    if (urls.size >= max) {
+                    if (urls.size >= max || olderCount > urls.size / 2) {
+                        log.info('Stopping getting posts', { olderCount, size: urls.size });
+
                         finish.resolve();
                         return;
                     }
@@ -197,7 +205,7 @@ export const getPostUrls = async (page: Page, { max, date, username }: { usernam
         const status = res.status();
 
         if (status !== 200 && status !== 302) {
-            log.debug('Res status / bzRequests', { status });
+            log.debug('Res status', { status });
             finish.resolve();
         }
     };
@@ -214,9 +222,9 @@ export const getPostUrls = async (page: Page, { max, date, username }: { usernam
                 maybeStop: async ({ count, bodyChanged, scrollChanged }) => {
                     await getPosts();
 
-                    log.debug(`Current size ${urls.size} of ${max}`);
+                    log.debug(`Current size ${urls.size} of ${max}`, { count, bodyChanged, scrollChanged });
 
-                    return urls.size >= max || (count > 2 && !bodyChanged && !scrollChanged);
+                    return urls.size >= max || (count > 5 && !bodyChanged && !scrollChanged);
                 },
             }),
         ]);
@@ -232,11 +240,11 @@ export const getPostUrls = async (page: Page, { max, date, username }: { usernam
         page.off('response', interceptAjax);
     }
 
-    const processedPosts = [...urls.entries()]
-        .filter(([, url]) => {
+    const processedPosts = [...urls.values()]
+        .filter((url) => {
             return postCutOffDate(url.timestamp);
         })
-        .map(([, url]) => {
+        .map((url) => {
             const parsed = storyFbToDesktopPermalink(url.url);
 
             return {
@@ -348,9 +356,9 @@ export const getReviews = async (page: Page, { date, max }: { max?: number; date
     });
 
     return {
-        average: ld?.[0].aggregateRating?.ratingValue ?? null,
+        average: ld?.[0]?.aggregateRating?.ratingValue ?? null,
         reviews: processedReviews,
-        count: ld?.[0].aggregateRating?.ratingCount ?? null,
+        count: ld?.[0]?.aggregateRating?.ratingCount ?? null,
     };
 };
 
@@ -566,239 +574,245 @@ export const getPostContent = async (page: Page): Promise<Partial<FbPost>> => {
 /**
  * Interact with the page to the the comments
  */
-export const getPostComments = async (page: Page, { max, mode = 'RANKED_THREADED' }: { max?: number; mode?: FbCommentsMode }): Promise<FbPost['comments']> => {
+export const getPostComments = async (page: Page, { max, date, mode = 'RANKED_THREADED' }: { max?: number; date?: string; mode?: FbCommentsMode }): Promise<FbPost['comments']> => {
     const comments = new Map<string, FbComment>();
 
     const finish = deferred(); // gracefully finish
     const currentUrl = page.url();
     const start = stopwatch();
-
-    log.debug('Starting loading comments', { url: currentUrl, mode });
+    const commentCutOffDate = cutOffDate(date);
 
     const control = DelayAbort(30000);
     let count = 0;
     let canStartAdding = false;
-    let bzRequests = 0; // sometimes it get stuck in a loop with POST requests to ajax/bz, we need to force close it
+    let olderCount = 0;
 
-    const interceptGrapQL = async (res: Response) => {
-        if (res.url().includes('ajax/bz')) {
-            bzRequests++;
-        }
+    if (max) {
+        log.debug('Starting loading comments', { url: currentUrl, mode, max });
 
-        if (res.url().includes('api/graphql/') && canStartAdding) {
-            const json = await res.json() as FbGraphQl;
+        const interceptGrapQL = async (res: Response) => {
+            if (res.url().includes('api/graphql/') && canStartAdding) {
+                const json = await res.json() as FbGraphQl;
 
-            if (json) {
-                const data = get(json, ['data', 'feedback', 'display_comments']);
+                if (json) {
+                    const data = get(json, ['data', 'feedback', 'display_comments']);
 
-                if (data) {
-                    if (data.count > count) {
-                        count = data.count; // eslint-disable-line prefer-destructuring
-                    }
+                    if (data) {
+                        if (data.count > count) {
+                            count = data.count; // eslint-disable-line prefer-destructuring
+                        }
 
-                    if (data.edges?.length > 0) {
-                        control.postpone(); // postpone abort only if there are comments available
+                        if (data.edges?.length > 0) {
+                            control.postpone(); // postpone abort only if there are comments available
 
-                        data.edges.map((s) => s.node).filter(s => s).forEach((p) => {
-                            if (!comments.has(p.id)) {
-                                if (max && comments.size >= max) {
-                                    return;
+                            data.edges.map((s) => s.node).filter(s => s).forEach((p) => {
+                                if (!comments.has(p.id)) {
+                                    if (comments.size >= max) {
+                                        return;
+                                    }
+
+                                    if (!commentCutOffDate(p.created_time)) {
+                                        olderCount++;
+                                    }
+
+                                    comments.set(p.id, {
+                                        date: convertDate(p.created_time, true),
+                                        name: get(p, ['author', 'name']),
+                                        profileUrl: get(p, ['author', 'url']),
+                                        text: get(p, ['body', 'text']) || null,
+                                        url: p.url,
+                                    });
                                 }
+                            });
+                        }
 
-                                comments.set(p.id, {
-                                    date: convertDate(p.created_time, true),
-                                    name: get(p, ['author', 'name']),
-                                    profileUrl: get(p, ['author', 'url']),
-                                    text: get(p, ['body', 'text']) || null,
-                                    url: p.url,
-                                });
-                            }
-                        });
-                    }
+                        const hasNext = get(data, ['page_info', 'has_next_page']);
 
-                    const hasNext = get(data, ['page_info', 'has_next_page']);
-
-                    if (hasNext === false || (max && comments.size >= max)) {
-                        finish.resolve();
+                        if (hasNext === false || comments.size >= max || olderCount > comments.size / 2) {
+                            finish.resolve();
+                        }
                     }
                 }
             }
-        }
 
-        const status = res.status();
+            const status = res.status();
 
-        if ((status !== 200 && status !== 302) || bzRequests > 100) {
-            log.debug('Res status / bzRequests', { bzRequests, status });
-            finish.resolve();
-        }
-    };
-
-    page.on('response', interceptGrapQL);
-
-    try {
-        log.debug('Trying to click load comments');
-
-        if (mode === 'RANKED_UNFILTERED' || mode === 'RANKED_THREADED') {
-            canStartAdding = true;
-        }
-
-        // clicking stuff is brute-force, until it works
-        const loadCommentsClicked = await page.evaluate(async ({ load, container, commentOrder }) => {
-            let tries = 0;
-
-            return new Promise<boolean>((resolve) => {
-                const tryLoad = () => {
-                    const loadComments = document.querySelector<HTMLAnchorElement>(load);
-
-                    if (document.querySelector(container) || document.querySelector(commentOrder)) {
-                        resolve(true);
-                    } else if (!loadComments) {
-                        tries++;
-                    } else {
-                        tries++;
-                        loadComments.click();
-                    }
-
-                    if (tries < 10) {
-                        setTimeout(tryLoad, tries * 400);
-                    } else {
-                        resolve(false);
-                    }
-                };
-
-                setTimeout(tryLoad, 700);
-            });
-        }, {
-            load: CSS_SELECTORS.LOAD_COMMENTS,
-            container: CSS_SELECTORS.COMMENTS_CONTAINER,
-            commentOrder: CSS_SELECTORS.COMMENT_ORDER,
-        });
-
-        if (loadCommentsClicked) {
-            log.debug('Load comments clicked, waiting more', { url: currentUrl, mode });
-
-            try {
-                await page.waitForSelector(CSS_SELECTORS.COMMENT_ORDER, {
-                    timeout: 5000,
-                    visible: true,
-                });
-            } catch (e) {
-                log.debug('No more comments');
+            if (status !== 200 && status !== 302) {
+                log.debug('Res status', { status });
+                finish.resolve();
             }
+        };
 
-            control.postpone();
+        page.on('response', interceptGrapQL);
 
-            if (mode !== 'RANKED_THREADED') {
-                const commentOrdering = await page.$$eval(CSS_SELECTORS.COMMENT_ORDER, async (els) => {
-                    if (!els.length) {
-                        return false;
-                    }
+        try {
+            log.debug('Trying to click load comments');
 
-                    (els as HTMLAnchorElement[]).forEach((el) => {
-                        el.click();
-                    });
-
-                    return true;
-                });
-
-                if (commentOrdering) {
-                    log.debug('Opened comment ordering', { url: currentUrl });
-
-                    try {
-                        await page.waitForSelector('[role="menuitemcheckbox"]', {
-                            timeout: 15000,
-                        });
-                    } catch (e) {
-                        log.debug(e.message, { url: currentUrl });
-                    }
-
-                    canStartAdding = true;
-
-                    await page.$$eval('[role="menuitemcheckbox"]', async (els, commentMode) => {
-                        (els as HTMLAnchorElement[]).filter((s) => s.querySelector(`[data-ordering="${commentMode}"]`)).forEach((el) => {
-                            const target = el.querySelector<HTMLDivElement>('[data-ordering]');
-
-                            if (target) {
-                                target.click();
-                            }
-                        });
-                    }, mode);
-
-                    log.debug('Changed mode', { url: currentUrl });
-
-                    try {
-                        await page.waitForSelector(CSS_SELECTORS.LOAD_MORE_COMMENTS, {
-                            timeout: 5000,
-                            visible: true,
-                        });
-                    } catch (e) {
-                        log.debug(e.message, { url: currentUrl });
-                    }
-                } else {
-                    canStartAdding = true;
-
-                    log.warning(`Comment ordering not found, using default "Most relevant"`, {
-                        url: currentUrl,
-                    });
-                }
-            } else {
+            if (mode === 'RANKED_UNFILTERED' || mode === 'RANKED_THREADED') {
                 canStartAdding = true;
             }
 
-            let clickTries = 0;
+            // clicking stuff is brute-force, until it works
+            const loadCommentsClicked = await page.evaluate(async ({ load, container, commentOrder }) => {
+                let tries = 0;
 
-            await control.run([
-                finish.promise,
-                scrollUntil(page, {
-                    sleepMillis: 500, // 1500 seconds in total
-                    maybeStop: async ({ bodyChanged }) => {
-                        const clicked = await page.$$eval(CSS_SELECTORS.LOAD_MORE_COMMENTS, async (els) => {
-                            let clicks = 0;
+                return new Promise<boolean>((resolve) => {
+                    const tryLoad = () => {
+                        const loadComments = document.querySelector<HTMLAnchorElement>(load);
 
-                            (els as HTMLAnchorElement[]).filter(s => !s.querySelector('i') && !s.closest('ul')).forEach((el) => {
-                                el.click();
-                                clicks++;
-                            });
+                        if (document.querySelector(container) || document.querySelector(commentOrder)) {
+                            resolve(true);
+                        } else if (!loadComments) {
+                            tries++;
+                        } else {
+                            tries++;
+                            loadComments.click();
+                        }
 
-                            return clicks;
+                        if (tries < 10) {
+                            setTimeout(tryLoad, tries * 200);
+                        } else {
+                            resolve(false);
+                        }
+                    };
+
+                    setTimeout(tryLoad, 700);
+                });
+            }, {
+                load: CSS_SELECTORS.LOAD_COMMENTS,
+                container: CSS_SELECTORS.COMMENTS_CONTAINER,
+                commentOrder: CSS_SELECTORS.COMMENT_ORDER,
+            });
+
+            if (loadCommentsClicked) {
+                log.debug('Load comments clicked, waiting more', { url: currentUrl, mode });
+
+                try {
+                    await page.waitForSelector(CSS_SELECTORS.COMMENT_ORDER, {
+                        timeout: 5000,
+                        visible: true,
+                    });
+                } catch (e) {
+                    log.debug('No more comments');
+                }
+
+                control.postpone();
+
+                if (mode !== 'RANKED_THREADED') {
+                    const commentOrdering = await page.$$eval(CSS_SELECTORS.COMMENT_ORDER, async (els) => {
+                        if (!els.length) {
+                            return false;
+                        }
+
+                        (els as HTMLAnchorElement[]).forEach((el) => {
+                            el.click();
                         });
 
-                        if (!clicked) {
-                            clickTries++;
+                        return true;
+                    });
+
+                    if (commentOrdering) {
+                        log.debug('Opened comment ordering', { url: currentUrl });
+
+                        try {
+                            await page.waitForSelector('[role="menuitemcheckbox"]', {
+                                timeout: 15000,
+                            });
+                        } catch (e) {
+                            log.debug(e.message, { url: currentUrl });
                         }
 
-                        await sleep(500);
+                        canStartAdding = true;
 
-                        log.debug('Current clicks on scrollUntil', { url: currentUrl, clicked, clickTries });
+                        await page.$$eval('[role="menuitemcheckbox"]', async (els, commentMode) => {
+                            (els as HTMLAnchorElement[]).filter((s) => s.querySelector(`[data-ordering="${commentMode}"]`)).forEach((el) => {
+                                const target = el.querySelector<HTMLDivElement>('[data-ordering]');
 
-                        if (!bodyChanged && clickTries > 3) {
-                            return true;
+                                if (target) {
+                                    target.click();
+                                }
+                            });
+                        }, mode);
+
+                        log.debug('Changed mode', { url: currentUrl });
+
+                        try {
+                            await page.waitForSelector(CSS_SELECTORS.LOAD_MORE_COMMENTS, {
+                                timeout: 5000,
+                                visible: true,
+                            });
+                        } catch (e) {
+                            log.debug(e.message, { url: currentUrl });
                         }
+                    } else {
+                        canStartAdding = true;
 
-                        return max ? comments.size >= max : false;
-                    },
-                }),
-            ]);
-        } else {
-            log.debug('Load comment button not found', { url: currentUrl });
+                        log.warning(`Comment ordering not found, using default "Most relevant"`, {
+                            url: currentUrl,
+                        });
+                    }
+                } else {
+                    canStartAdding = true;
+                }
+
+                let clickTries = 0;
+
+                await control.run([
+                    finish.promise,
+                    scrollUntil(page, {
+                        sleepMillis: 500, // 1500 seconds in total
+                        maybeStop: async ({ bodyChanged }) => {
+                            const clicked = await page.$$eval(CSS_SELECTORS.LOAD_MORE_COMMENTS, async (els) => {
+                                let clicks = 0;
+
+                                (els as HTMLAnchorElement[]).filter(s => !s.querySelector('i') && !s.closest('ul')).forEach((el) => {
+                                    el.click();
+                                    clicks++;
+                                });
+
+                                return clicks;
+                            });
+
+                            if (!clicked) {
+                                clickTries++;
+                            }
+
+                            await sleep(500);
+
+                            log.debug('Current clicks on scrollUntil', { url: currentUrl, clicked, clickTries });
+
+                            if (!bodyChanged && clickTries > 3) {
+                                return true;
+                            }
+
+                            return max ? comments.size >= max : false;
+                        },
+                    }),
+                ]);
+            } else {
+                log.debug('Load comment button not found', { url: currentUrl });
+            }
+        } catch (e) {
+            if (e instanceof AbortError) {
+                log.warning('Loading of new comments aborted', { url: currentUrl });
+            } else {
+                throw e;
+            }
+        } finally {
+            page.off('response', interceptGrapQL);
+            finish.resolve();
         }
-    } catch (e) {
-        if (e instanceof AbortError) {
-            log.warning('Loading of new comments aborted', { url: currentUrl });
-        } else {
-            throw e;
-        }
-    } finally {
-        page.off('response', interceptGrapQL);
-        finish.resolve();
     }
 
-    log.info(`Got ${comments.size} comments in ${start() / 1000}s`, { url: currentUrl });
+    const processedComments = [...comments.values()]
+        .filter((s) => commentCutOffDate(s.date));
+
+    log.info(`Got ${processedComments.length} comments in ${start() / 1000}s`, { url: currentUrl });
 
     return {
         count,
         mode,
-        comments: [...comments.values()],
+        comments: processedComments,
     };
 };
 
