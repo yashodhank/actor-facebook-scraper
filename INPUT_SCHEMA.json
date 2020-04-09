@@ -314,7 +314,6 @@
             "editor": "checkbox",
             "description": "Get the About page if exists",
             "default": true,
-            "prefill": true,
             "example": true,
             "type": "boolean",
             "groupCaption": "Sections to scrape",
@@ -325,7 +324,6 @@
             "editor": "checkbox",
             "description": "Get the Reviews if it exists",
             "default": true,
-            "prefill": true,
             "example": true,
             "type": "boolean"
         },
@@ -333,7 +331,6 @@
             "title": "Posts",
             "description": "Get the Posts",
             "default": true,
-            "prefill": true,
             "example": true,
             "type": "boolean",
             "editor": "checkbox"
@@ -342,7 +339,6 @@
             "title": "Services",
             "description": "Get the Services if it exists",
             "default": true,
-            "prefill": true,
             "example": true,
             "type": "boolean",
             "editor": "checkbox"
