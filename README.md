@@ -154,7 +154,7 @@ Example input, only `startUrls` and `proxyConfiguration` are required (check `IN
 You can use the `unwind` parameter to display only the posts from your dataset on the platform, as such:
 
 ```
-https://api.apify.com/v2/datasets/VnN46ngJawfOKqmSL/items?format=json&clean=1&unwind=posts&fields=postDate,postText,postStats,postLinks,postImages,postUrl,title,posts,pageUrl
+https://api.apify.com/v2/datasets/zbg3vVF3NnXGZfdsX/items?format=json&clean=1&unwind=posts&fields=posts,title,pageUrl
 ```
 
 `unwind` will turn the `posts` property on the dataset to become the dataset items themselves. the `fields` parameters makes sure to only include the fields that are important
