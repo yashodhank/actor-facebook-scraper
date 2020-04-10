@@ -121,21 +121,21 @@ export interface FbImage {
 }
 
 export interface FbPost {
-    date: string;
-    text: string;
-    url: string;
-    stats: {
+    postDate: string;
+    postText: string;
+    postUrl: string;
+    postStats: {
         likes: number;
         shares: number;
         comments: number;
     };
-    comments: {
+    postComments: {
         count: number;
         mode: FbCommentsMode;
         comments: FbComment[];
     };
-    images: FbImage[];
-    links: string[];
+    postImages: FbImage[];
+    postLinks: string[];
 }
 
 export interface FbService {
@@ -151,7 +151,7 @@ export interface FbPage {
    "#ref"?: string;
    "#version"?: number;
 
-    url: string;
+    pageUrl: string;
     title: string;
     verified: boolean;
     messenger: string | null;
@@ -181,9 +181,9 @@ export interface FbPage {
         region: string | null;
         city: string | null;
     };
-    services: FbService[];
+    services?: FbService[];
     posts: FbPost[];
-    reviews: {
+    reviews?: {
         average: number | null;
         count: number | null;
         reviews: FbReview[];

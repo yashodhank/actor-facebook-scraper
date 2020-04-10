@@ -149,6 +149,16 @@ Example input, only `startUrls` and `proxyConfiguration` are required (check `IN
 }
 ```
 
+## Advanced Usage
+
+You can use the `unwind` parameter to display only the posts from your dataset on the platform, as such:
+
+```
+https://api.apify.com/v2/datasets/1xPYQtXcncczgHZjX/items?format=json&clean=1&unwind=posts&fields=postDate,postText,postStats,postLinks,postImages,postUrl,title,posts,pageUrl
+```
+
+`unwind` will turn the `posts` property on the dataset to become the dataset items themselves. the `fields` parameters makes sure to only include the fields that are important
+
 ## Limitations / Caveats
 
 * Pages "Likes" count is a best-effort. The mobile page doesn't provide the count, and some languages don't provide any at all. So if a page has 1.9M, the number will most likely be 1900000 instead of the exact number.
@@ -158,6 +168,14 @@ Example input, only `startUrls` and `proxyConfiguration` are required (check `IN
 * Cut-off date for posts happen on the original posted date, not edited date, i.e: posts show as `February 20th 2:11AM`, but that's the edited date, the actual post date is `February 19th 11:31AM` provided on the DOM
 * The order of items aren't necessarily the same as seen on the page, and not sorted by date
 * Comments of comments are skipped
+
+## Versioning
+
+This project adheres to semver.
+
+* Major versions means a change in the output or input format, and change in behavior.
+* Minor versions means new features
+* Patch versions means bug fixes / optimizations
 
 ## License
 

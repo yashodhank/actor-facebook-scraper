@@ -105,7 +105,7 @@ Apify.main(async () => {
             await map.append(username, async (value) => {
                 return {
                     ...emptyState(),
-                    url: normalizeOutputPageUrl(subpage.url),
+                    pageUrl: normalizeOutputPageUrl(subpage.url),
                     '#url': subpage.url,
                     '#ref': url,
                     ...value,
@@ -369,15 +369,17 @@ Apify.main(async () => {
                             try {
                                 const services = await getServices(page);
 
-                                await map.append(username, async (value) => {
-                                    return {
-                                        ...value,
-                                        services: [
-                                            ...(value?.services ?? []),
-                                            ...services,
-                                        ],
-                                    };
-                                });
+                                if (services.length) {
+                                    await map.append(username, async (value) => {
+                                        return {
+                                            ...value,
+                                            services: [
+                                                ...(value?.services ?? []),
+                                                ...services,
+                                            ],
+                                        };
+                                    });
+                                }
                             } catch (e) {
                                 // it's ok to fail here, not every page has services
                                 log.debug(e.message);
@@ -416,25 +418,29 @@ Apify.main(async () => {
                         // Reviews if any
                         case 'reviews':
                             try {
-                                const { average, count, reviews } = await getReviews(page, {
+                                const reviewData = await getReviews(page, {
                                     max: maxReviews,
                                     date: maxReviewDate,
                                 });
 
-                                await map.append(username, async (value) => {
-                                    return {
-                                        ...value,
-                                        reviews: {
-                                            ...(value?.reviews ?? {}),
-                                            average,
-                                            count,
-                                            reviews: [
-                                                ...reviews,
-                                                ...(value?.reviews?.reviews ?? []),
-                                            ],
-                                        },
-                                    };
-                                });
+                                if (reviewData) {
+                                    const { average, count, reviews } = reviewData;
+
+                                    await map.append(username, async (value) => {
+                                        return {
+                                            ...value,
+                                            reviews: {
+                                                ...(value?.reviews ?? {}),
+                                                average,
+                                                count,
+                                                reviews: [
+                                                    ...reviews,
+                                                    ...(value?.reviews?.reviews ?? []),
+                                                ],
+                                            },
+                                        };
+                                    });
+                                }
                             } catch (e) {
                                 // it's ok for failing here, not every page has reviews
                                 log.debug(e.message);
@@ -456,12 +462,12 @@ Apify.main(async () => {
                     // mobile address
                     const { username, canonical } = userData;
 
-                    const [stats, content] = await Promise.all([
+                    const [postStats, content] = await Promise.all([
                         getPostInfoFromScript(page, canonical),
                         getPostContent(page),
                     ]);
 
-                    const comments = await getPostComments(page, {
+                    const postComments = await getPostComments(page, {
                         max: maxPostComments,
                         mode: commentsMode,
                         date: maxCommentDate,
@@ -473,8 +479,8 @@ Apify.main(async () => {
                             posts: [
                                 {
                                     ...content,
-                                    stats,
-                                    comments,
+                                    postStats,
+                                    postComments,
                                 },
                                 ...(value?.posts ?? []),
                             ],
@@ -536,7 +542,7 @@ Apify.main(async () => {
     // generate the dataset from all the crawled pages
     await Apify.pushData([...state.values()].filter(s => s.categories?.length).map(val => ({
         ...val,
-        "#version": 1, // current data format version
+        "#version": 2, // current data format version
         '#finishedAt': finished,
     })));
 

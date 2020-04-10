@@ -11,14 +11,8 @@ export const emptyState = (): FbPage => ({
     messenger: '',
     posts: [],
     priceRange: '',
-    reviews: {
-        reviews: [],
-        average: 0,
-        count: 0,
-    },
-    services: [],
     title: '',
-    url: '',
+    pageUrl: '',
     address: {
         city: null,
         lat: null,

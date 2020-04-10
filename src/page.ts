@@ -137,7 +137,7 @@ export const getPostUrls = async (page: Page, { max, date, username }: { usernam
     const postCutOffDate = cutOffDate(date);
     const start = stopwatch();
     const control = DelayAbort(30000);
-    const scrollingSleep = 300;
+    const scrollingSleep = 200;
     let olderCount = 0;
 
     const getPosts = async () => {
@@ -178,7 +178,7 @@ export const getPostUrls = async (page: Page, { max, date, username }: { usernam
                         });
                     }
 
-                    if (urls.size >= max || olderCount > urls.size / 2) {
+                    if (urls.size >= max || olderCount > Math.ceil(urls.size / 2)) {
                         log.info('Stopping getting posts', { olderCount, size: urls.size });
 
                         finish.resolve();
@@ -261,13 +261,9 @@ export const getPostUrls = async (page: Page, { max, date, username }: { usernam
 /**
  * Get the reviews until it reaches the given max
  */
-export const getReviews = async (page: Page, { date, max }: { max?: number; date?: string }): Promise<FbPage['reviews']> => {
+export const getReviews = async (page: Page, { date, max }: { max?: number; date?: string }): Promise<FbPage['reviews'] | undefined> => {
     if (!max) {
-        return {
-            average: null,
-            count: null,
-            reviews: [],
-        };
+        return;
     }
 
     const ld = await pageSelectors.ld(page);
@@ -529,8 +525,8 @@ export const getPostInfoFromScript = async (page: Page, url: string) => {
  * which we are already expecting
  */
 export const getPostContent = async (page: Page): Promise<Partial<FbPost>> => {
-    const content = await page.$eval(CSS_SELECTORS.POST_CONTAINER, async (el) => {
-        const date = (el.querySelector('[data-utime]') as HTMLDivElement)?.dataset?.utime;
+    const content = await page.$eval(CSS_SELECTORS.POST_CONTAINER, async (el): Promise<Partial<FbPost>> => {
+        const postDate = (el.querySelector('[data-utime]') as HTMLDivElement)?.dataset?.utime;
         const userContent = el.querySelector('.userContent') as HTMLDivElement;
 
         if (!userContent) {
@@ -539,20 +535,20 @@ export const getPostContent = async (page: Page): Promise<Partial<FbPost>> => {
 
         window.unhideChildren(userContent);
 
-        const text = userContent.innerText.trim();
+        const postText = userContent.innerText.trim();
         const images: HTMLImageElement[] = Array.from(el.querySelectorAll('img[src*="scontent"]'));
         const links: HTMLAnchorElement[] = Array.from(el.querySelectorAll('[href*="l.facebook.com/l.php?u="]'));
 
         return {
-            date,
-            text,
-            images: images.filter(img => img.closest('a[rel="theater"]') && img.src).map((img) => {
+            postDate,
+            postText,
+            postImages: images.filter(img => img.closest('a[rel="theater"]') && img.src).map((img) => {
                 return {
                     link: img.closest<HTMLAnchorElement>('a[rel="theater"]')!.href,
                     image: img.src,
                 };
             }),
-            links: [...new Set(links.filter(link => link.href).map((link) => {
+            postLinks: [...new Set(links.filter(link => link.href).map((link) => {
                 try {
                     const url = new URL(link.href);
 
@@ -566,15 +562,15 @@ export const getPostContent = async (page: Page): Promise<Partial<FbPost>> => {
 
     return {
         ...content,
-        date: convertDate(content.date, true),
-        url: page.url(),
+        postDate: convertDate(content.postDate, true),
+        postUrl: page.url(),
     };
 };
 
 /**
  * Interact with the page to the the comments
  */
-export const getPostComments = async (page: Page, { max, date, mode = 'RANKED_THREADED' }: { max?: number; date?: string; mode?: FbCommentsMode }): Promise<FbPost['comments']> => {
+export const getPostComments = async (page: Page, { max, date, mode = 'RANKED_THREADED' }: { max?: number; date?: string; mode?: FbCommentsMode }): Promise<FbPost['postComments']> => {
     const comments = new Map<string, FbComment>();
 
     const finish = deferred(); // gracefully finish
@@ -628,7 +624,7 @@ export const getPostComments = async (page: Page, { max, date, mode = 'RANKED_TH
 
                         const hasNext = get(data, ['page_info', 'has_next_page']);
 
-                        if (hasNext === false || comments.size >= max || olderCount > comments.size / 2) {
+                        if (hasNext === false || comments.size >= max || olderCount > Math.ceil(comments.size / 2)) {
                             finish.resolve();
                         }
                     }
