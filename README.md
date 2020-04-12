@@ -12,11 +12,11 @@ One page and posts take around 5-7 minutes for the default amount of information
 
 Usually, more concurrency is not better, while 5-10 concurrent tasks can finish each around 30s-60s, a 20 concurrency can take up to 300s each. You can limit your concurrency by setting the `MAX_CONCURRENCY` environment variable on your actor.
 
-A 4096MB actor will take an average 0.07 CU for each page on default settings. More input page URLs means more memory needed to scrape all pages.
+A 2048MB actor takes an average `0.015` CU for each page on default settings. More "input page URLs" means more memory needed to scrape all pages.
 
-**WARNING**: Don't use a limit too high for `maxPosts` as you can lose everything due to out of memory or it may never finish. While scrolling the page, the partial content is kept in memory until the scrolling finishes.
+**WARNING**: Don't use a limit too high for `maxPosts` as you can lose everything due to out of memory, or it may never finish. While scrolling the page, the partial content is kept in memory until the scrolling finishes.
 
-Take into account the need for proxies that will be included in the costs
+Take into account the need for proxies that are included in the costs.
 
 ## Input
 
@@ -27,14 +27,21 @@ Example input, only `startUrls` and `proxyConfiguration` are required (check `IN
     "startUrls": [
         { "url": "https://www.facebook.com/biz/hotel-supply-service/?place_id=103095856397524" }
     ],
+    "maxPosts": 3,
+    "maxPostDate": "2020-10-10",
+    "maxPostComments": 15,
+    "maxReviewDate": "10 days", // if today is 2020-04-11, reviews will be 2020-04-01 and beyond
+    "maxCommentDate": "1 month",
+    "maxReviews": 3,
+    "commentsMode": "RANKED_THREADED",
+    "scrapeAbout": true,
+    "scrapeReviews": true,
+    "scrapePosts": true,
+    "scrapeServices": true,
     "language": "cs-CZ",
-    "maxPosts": 1,
-    "pageInfo": ["posts", "about", "reviews", "services"],
     "proxyConfiguration": {
         "useApifyProxy": true
-    },
-    "maxPostComments": 15,
-    "maxReviews": 3
+    }
 }
 ```
 
@@ -53,22 +60,22 @@ Example input, only `startUrls` and `proxyConfiguration` are required (check `IN
   "messenger": "https://m.me/1" ...,
   "posts": [
     {
-      "date": "2020-03-08T15:35:51.000Z",
-      "text": "Our guest " ...,
-      "images": [
+      "postDate": "2020-03-08T15:35:51.000Z",
+      "postText": "Our guest " ...,
+      "postImages": [
         {
           "link": "https://www.facebook.com/.../photos" ...,
           "image": "https://scontent-prg1-1.xx.fbcdn.net/v/t1.0-0/" ...
         }
       ],
-      "links": [],
-      "url": "https://www.facebook.com/permalink.php?story_fbid="...,
-      "stats": {
+      "postLinks": [],
+      "postUrl": "https://www.facebook.com/permalink.php?story_fbid="...,
+      "postStats": {
         "comments": 4,
         "reactions": 66,
         "shares": 2
       },
-      "comments": {
+      "postComments": {
         "count": 2,
         "mode": "RANKED_THREADED",
         "comments": [
@@ -117,7 +124,7 @@ Example input, only `startUrls` and `proxyConfiguration` are required (check `IN
     }
   ],
   "title": "Hotel, Prague",
-  "url": "https://www.facebook.com/...",
+  "pageUrl": "https://www.facebook.com/...",
   "address": {
     "city": "Praha",
     "lat": 50.08905444,
@@ -167,7 +174,7 @@ https://api.apify.com/v2/datasets/zbg3vVF3NnXGZfdsX/items?format=json&clean=1&un
 * New reviews don't contain a rating from 1 to 5, but rather is positive or negative
 * Cut-off date for posts happen on the original posted date, not edited date, i.e: posts show as `February 20th 2:11AM`, but that's the edited date, the actual post date is `February 19th 11:31AM` provided on the DOM
 * The order of items aren't necessarily the same as seen on the page, and not sorted by date
-* Comments of comments are skipped
+* Comments of comments aren't included.
 
 ## Versioning
 
@@ -176,6 +183,10 @@ This project adheres to semver.
 * Major versions means a change in the output or input format, and change in behavior.
 * Minor versions means new features
 * Patch versions means bug fixes / optimizations
+
+## Upcoming
+
+* Separated dataset for posts, comments and reviews
 
 ## License
 

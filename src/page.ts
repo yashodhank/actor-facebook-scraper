@@ -125,7 +125,7 @@ export const getPagesFromListing = async (page: Page) => {
 /**
  * Get posts until it reaches the given max
  */
-export const getPostUrls = async (page: Page, { max, date, username }: { username: string; max?: number; date?: string }) => {
+export const getPostUrls = async (page: Page, { max, date, username }: { username: string; max?: number; date?: number | null }) => {
     if (!max) {
         return [];
     }
@@ -261,7 +261,7 @@ export const getPostUrls = async (page: Page, { max, date, username }: { usernam
 /**
  * Get the reviews until it reaches the given max
  */
-export const getReviews = async (page: Page, { date, max }: { max?: number; date?: string }): Promise<FbPage['reviews'] | undefined> => {
+export const getReviews = async (page: Page, { date, max }: { max?: number; date?: number | null }): Promise<FbPage['reviews'] | undefined> => {
     if (!max) {
         return;
     }
@@ -570,7 +570,7 @@ export const getPostContent = async (page: Page): Promise<Partial<FbPost>> => {
 /**
  * Interact with the page to the the comments
  */
-export const getPostComments = async (page: Page, { max, date, mode = 'RANKED_THREADED' }: { max?: number; date?: string; mode?: FbCommentsMode }): Promise<FbPost['postComments']> => {
+export const getPostComments = async (page: Page, { max, date, mode = 'RANKED_THREADED' }: { max?: number; date?: number | null; mode?: FbCommentsMode }): Promise<FbPost['postComments']> => {
     const comments = new Map<string, FbComment>();
 
     const finish = deferred(); // gracefully finish

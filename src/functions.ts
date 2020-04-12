@@ -1,5 +1,6 @@
 import Apify from 'apify';
 import type { ElementHandle, Page } from 'puppeteer';
+import * as moment from 'moment';
 import { InfoError } from './error';
 import { CSS_SELECTORS, MOBILE_HOST, DESKTOP_HOST } from './constants';
 import type { FbLocalBusiness, FbFT, FbSection, FbLabel, FbReview } from './definitions';
@@ -7,6 +8,29 @@ import type { FbLocalBusiness, FbFT, FbSection, FbLabel, FbReview } from './defi
 import UserAgents = require('user-agents');
 
 const { log, sleep } = Apify.utils;
+
+/**
+ * Returns unix timestamp
+ */
+export const parseRelativeDate = (dateFrom: string) => {
+    if (!dateFrom) {
+        return;
+    }
+
+    const parsedDateFrom = new Date(dateFrom);
+    if (!Number.isNaN(parsedDateFrom.getTime())) {
+        return parsedDateFrom.getTime();
+    }
+    const split = dateFrom.split(' ');
+    const now = moment();
+    const difference = now.clone().subtract(split[0] as any, split[1]);
+    if (now !== difference) {
+        // Means the subtraction worked
+        return difference.valueOf();
+    }
+
+    throw new Error('WRONG INPUT: dateFrom is not a valid date. Please use date in YYYY-MM-DD or format like "1 week" or "20 days"');
+};
 
 /**
  * Takes a story.php and turns into a cleaned desktop permalink.php
@@ -35,12 +59,14 @@ export const storyFbToDesktopPermalink = (url?: string | null) => {
 /**
  * Convert date types to milliseconds.
  * Supports years '2020', '2010-10-10', 1577836800000, 1577836800, '2020-01-01T00:00:00.000Z'
+ *
+ * Returns "Infinity" if value is not provided or falsy
  */
-export function convertDate(value: string | number | Date | undefined, isoString: true): string;
-export function convertDate(value?: string | number | Date): number;
-export function convertDate(value?: string | number | Date, isoString = false) {
+export function convertDate(value: string | number | Date | undefined | null, isoString: true): string;
+export function convertDate(value?: string | number | Date | null): number;
+export function convertDate(value?: string | number | Date | null, isoString = false) {
     if (!value) {
-        return Infinity;
+        return isoString ? '2100-01-01T00:00:00.000Z' : Infinity;
     }
 
     if (value instanceof Date) {
@@ -66,7 +92,7 @@ export function convertDate(value?: string | number | Date, isoString = false) {
 /**
  * Check if the provided date is greater than the minimum
  */
-export const cutOffDate = (base?: string | number) => {
+export const cutOffDate = (base?: string | number | null) => {
     let d = convertDate(base);
 
     if (!Number.isFinite(d)) {

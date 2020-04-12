@@ -10,6 +10,7 @@ import {
     generateSubpagesFromUrl,
     stopwatch,
     executeOnDebug,
+    parseRelativeDate,
 } from './functions';
 import {
     getPagesFromListing,
@@ -81,6 +82,24 @@ Apify.main(async () => {
 
     log.info(`Starting crawler with ${startUrlsRequests.length()} urls`);
     log.info(`Using language "${(LANGUAGES as any)[language]}" (${language})`);
+
+    const processedPostDate = maxPostDate ? parseRelativeDate(maxPostDate) : null;
+
+    if (processedPostDate) {
+        log.info(`Getting posts from ${new Date(processedPostDate).toLocaleString()} and newer`);
+    }
+
+    const processedCommentDate = maxCommentDate ? parseRelativeDate(maxCommentDate) : null;
+
+    if (processedCommentDate) {
+        log.info(`Getting comments from ${new Date(processedCommentDate).toLocaleString()} and newer`);
+    }
+
+    const processedReviewDate = maxReviewDate ? parseRelativeDate(maxReviewDate) : null;
+
+    if (processedReviewDate) {
+        log.info(`Getting reviews from ${new Date(processedReviewDate).toLocaleString()} and newer`);
+    }
 
     const requestQueue = await Apify.openRequestQueue();
 
@@ -399,7 +418,7 @@ Apify.main(async () => {
                             // read on their own phase/label
                             for (const url of await getPostUrls(page, {
                                 max: maxPosts,
-                                date: maxPostDate,
+                                date: processedPostDate,
                                 username,
                             })) {
                                 if (url.url) {
@@ -420,7 +439,7 @@ Apify.main(async () => {
                             try {
                                 const reviewData = await getReviews(page, {
                                     max: maxReviews,
-                                    date: maxReviewDate,
+                                    date: processedReviewDate,
                                 });
 
                                 if (reviewData) {
@@ -470,7 +489,7 @@ Apify.main(async () => {
                     const postComments = await getPostComments(page, {
                         max: maxPostComments,
                         mode: commentsMode,
-                        date: maxCommentDate,
+                        date: processedCommentDate,
                     });
 
                     await map.append(username, async (value) => {
