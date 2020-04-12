@@ -272,8 +272,7 @@
             "example": "2020-01-01",
             "prefill": "2020-01-01",
             "type": "string",
-            "editor": "textfield",
-            "pattern": "\\d{4}-\\d{2}-\\d{2}"
+            "editor": "textfield"
         },
         "maxPostComments": {
             "title": "Max comments",
@@ -289,8 +288,7 @@
             "example": "2020-01-01",
             "prefill": "2020-01-01",
             "type": "string",
-            "editor": "textfield",
-            "pattern": "\\d{4}-\\d{2}-\\d{2}"
+            "editor": "textfield"
         },
         "maxReviews": {
             "title": "Max reviews",
@@ -306,8 +304,7 @@
             "prefill": "2020-01-01",
             "example": "2020-01-01",
             "type": "string",
-            "editor": "textfield",
-            "pattern": "\\d{4}-\\d{2}-\\d{2}"
+            "editor": "textfield"
         },
         "scrapeAbout": {
             "title": "About",
