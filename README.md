@@ -4,19 +4,7 @@ Extract public information from Facebook Pages.
 
 ## Usage
 
-If you want to run the actor on the Apify platform, you need to have at least a proxy so that Facebook doesn't block you. Since it uses Puppeteer, the minimum memory for running is 4096 MB.
-
-## Expected Consumption
-
-One page and posts take around 5-7 minutes for the default amount of information (3 posts, 15 comments) to be generated, also depends on the proxy type used (`RESIDENTIAL` vs `DATACENTER`), block rate, retries, memory and CPU provided.
-
-Usually, more concurrency is not better, while 5-10 concurrent tasks can finish each around 30s-60s, a 20 concurrency can take up to 300s each. You can limit your concurrency by setting the `MAX_CONCURRENCY` environment variable on your actor.
-
-A 2048MB actor takes an average `0.015` CU for each page on default settings. More "input page URLs" means more memory needed to scrape all pages.
-
-**WARNING**: Don't use a limit too high for `maxPosts` as you can lose everything due to out of memory, or it may never finish. While scrolling the page, the partial content is kept in memory until the scrolling finishes.
-
-Take into account the need for proxies that are included in the costs.
+If you want to run the actor on the Apify platform, you need to have at least some Apify proxy group so that Facebook doesn't block you. Since it uses Puppeteer, the minimum memory for running is 2048 MB.
 
 ## Input
 
@@ -155,6 +143,18 @@ Example input, only `startUrls` and `proxyConfiguration` are required (check `IN
   "#finishedAt": "2020-03-31T17:34:22.979Z"
 }
 ```
+
+## Expected Consumption
+
+One page and posts take around 5-7 minutes for the default amount of information (3 posts, 15 comments) to be generated, also depends on the proxy type used (`RESIDENTIAL` vs `DATACENTER`), block rate, retries, memory and CPU provided.
+
+Usually, more concurrency is not better, while 5-10 concurrent tasks can finish each around 30s-60s. A "20 concurrency" run can take up to 300s each. You can limit your concurrency by setting the `MAX_CONCURRENCY` environment variable on your actor.
+
+A 2048MB actor takes an average `0.015` CU for each page on default settings. More "input page URLs" means more memory needed to scrape all pages.
+
+**WARNING**: Don't use a limit too high for `maxPosts` as you can lose everything due to out of memory, or it may never finish. While scrolling the page, the partial content is kept in memory until the scrolling finishes.
+
+Take into account the need for proxies that are included in the costs.
 
 ## Advanced Usage
 
